@@ -69,4 +69,19 @@ img {
     font: 'M PLUS Rounded 1c', sans-serif;
 }
 
+.switcher{
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    background: lightblue;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+}
+
+.switcher button{
+    color: black;
+    background: lightgreen;
+    padding: 5px;
+}
 

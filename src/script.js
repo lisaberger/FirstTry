@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import galaxyVertexShader from './shaders/galaxy/vertex.glsl'
 import galaxyFragmentShader from './shaders/galaxy/fragment.glsl'
+import { Scene } from 'three'
 
 const $ = require('jquery');
 /**
@@ -169,7 +170,7 @@ function createHelix(){
         const theta = i * 0.175 + Math.PI; //default  0.175
         const y = - ( i * 0.05 ) + 2;
         
-        geometries[i] = new THREE.BoxGeometry(1.4, 2, 1.2);
+        geometries[i] = new THREE.BoxGeometry(1, 1, 1);
         materials[i] = new THREE.MeshBasicMaterial({ color: '#ffffff' });
         // const edges = new THREE.EdgesGeometry( geometry );
         // const object = new THREE.LineSegments( edges, new THREE.LineBasicMaterial( { color: 0xff9900 } ) );
@@ -235,7 +236,7 @@ document.getElementById('starter').addEventListener('click', () => {
     loadTablePage = true;
     scene.remove(points);
     $('.section').fadeOut();
-    createHelix();
+    createTable();
 })
 /**
  * Camera
@@ -303,3 +304,19 @@ const tick = () =>
 }
 
 tick()
+
+
+// button functionality
+
+$('.table').on('click', () =>{
+    createTable();
+    scene.remove(targets.helix);
+});
+
+$('.helix').on('click', () =>{
+    createHelix();
+    for(let i = 0; i < cubes.length; i++){
+        scene.remove(cubes[i]   );
+    }
+    
+});
