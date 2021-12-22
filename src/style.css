@@ -70,18 +70,31 @@ img {
 }
 
 .switcher{
+    display: none;
     position: absolute;
     bottom: 20px;
-    left: 50%;
-    background: lightblue;
-    display: flex;
+    left: 45%;    
     align-items: center;
     justify-content: space-around;
 }
 
 .switcher button{
-    color: black;
-    background: lightgreen;
-    padding: 5px;
+    width: 100px;
+    height: 40px;
+    color: white;
+    background: black;
+    padding: 10px;
+    border: 2px solid white;
+    transition: all 2s;
+    margin: 3px;
+}
+
+.active{
+    border: 2px solid red !important;
+}
+
+.switcher button:hover{
+    color: gold;
+    background: rgb(24,24, 24);
 }
 
