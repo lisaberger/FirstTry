@@ -16,7 +16,7 @@ const canvas = document.querySelector("canvas.webgl");
 // Scene
 const scene = new THREE.Scene();
 
-// Helix targets
+// targets
 const targets = { table: [], sphere: [], helix: [], grid: [] };
 /**
  * Galaxy
@@ -134,18 +134,42 @@ const generateGalaxy = () => {
   scene.add(points);
 };
 
-function createTable() {
-  // arrays for the cubes
-  let cubes = [];
-  let materials = [];
-  let geometries = [];
-  let colors = [];
+const vector = new THREE.Vector3();
+const geometryBox = new THREE.BoxGeometry(1, 1, 1);
+
+function createTable(filterVar) {
+  console.log(filterVar);
   // rows and cols for the grid
   let row = 0;
   let col = 0;
+  let c = 0;
   $.getJSON("periodic-table.json", function (data) {
-    for (let i = 0; i < data.length; i++) {
-      // grid
+    if(filterVar){
+      for(let i = 0; i < data.length; i++){
+        if(filterVar === data[i].groupBlock || filterVar === data[i].standardState || filterVar === data[i].bondingType){
+
+          console.log(data[i].name);
+          console.log(c);
+          const edges = new THREE.EdgesGeometry(geometryBox);
+          const object = new THREE.LineSegments(
+            edges,
+            new THREE.LineBasicMaterial({ color: 0xff9900 })
+          );
+          object.lookAt(vector);
+          targets.table.push(object);
+          targets.table[c].position.x = c * 1.8;
+          targets.table[c].position.y = 0;
+          // add cubes to scene
+          scene.add(targets.table[c]);
+          
+          c++;
+        }    
+      }
+      console.log(targets.table);
+    }
+    else{
+      for(let i = 0; i < data.length; i++){
+        // grid
       if (col > 12) {
         row--;
         col = 0;
@@ -155,7 +179,7 @@ function createTable() {
         edges,
         new THREE.LineBasicMaterial({ color: 0xff9900 })
       );
-
+      object.lookAt(vector);
       targets.table.push(object);
       targets.table[i].position.x = 6 - col * 1.8;
       targets.table[i].position.y = row * 2.5;
@@ -163,31 +187,25 @@ function createTable() {
       scene.add(targets.table[i]);
       // up the column
       col++;
+      }      
     }
   });
 }
 
-const vector = new THREE.Vector3();
-const geometryBox = new THREE.BoxGeometry(1, 1, 1);
+
 
 function createHelix() {
   const objects = [];
-  let geometries = [];
-  let materials = [];
-
   $.getJSON("periodic-table.json", function (data) {
     for (let i = 0; i < data.length; i++) {
       const theta = i * 0.175 + Math.PI; //default  0.175
       const y = -(i * 0.05) + 2;
 
-      // geometries[i] = new THREE.BoxGeometry(1, 1, 1);
-      materials[i] = new THREE.MeshBasicMaterial({ color: "#ffffff" });
       const edges = new THREE.EdgesGeometry(geometryBox);
       const object = new THREE.LineSegments(
         edges,
         new THREE.LineBasicMaterial({ color: 0xff9900 })
       );
-      //const object = new THREE.Mesh(geometries[i], materials[i]);
       object.position.setFromCylindricalCoords(8, theta, y);
 
       vector.x = object.position.x * 2;
@@ -206,7 +224,7 @@ function createHelix() {
 // raycaster
 const raycaster = new THREE.Raycaster();
 /**Mehrere Objects**/
-const intersect = raycaster.intersectObjects(targets.helix);
+const intersect = raycaster.intersectObjects(targets);
 
 /**
  * Mouse
@@ -246,7 +264,10 @@ document.getElementById("starter").addEventListener("click", () => {
   scene.remove(points);
   $(".section").fadeOut();
   $(".switcher").fadeIn();
+  $(".filter").fadeIn();
   createTable();
+  camera.position.x = 5;
+  camera.position.z = -15;
   camera.position.z = 15;
 });
 /**
@@ -266,7 +287,7 @@ scene.add(camera);
 
 // Controls
 const controls = new OrbitControls(camera, canvas);
-
+controls.enableDamping = true;
 /**
  * Renderer
  */
@@ -305,6 +326,7 @@ scene.add(directionalLight2);
  * Animate
  */
 const clock = new THREE.Clock();
+let raycasterTestObjects = targets.table;
 
 const tick = () => {
   if (loadLandingPage) {
@@ -316,15 +338,16 @@ const tick = () => {
   if (loadTablePage) {
     // Cast a Ray
     raycaster.setFromCamera(mouse, camera);
-    const objectsToTest = targets.helix;
+    // set intersct objects
+    const objectsToTest = raycasterTestObjects;
     const intersects = raycaster.intersectObjects(objectsToTest);
 
     for (const object of objectsToTest) {
-      object.material.color.set("#00ff00");
+      object.material.color.set("#ff0000");
     }
 
     for (const intersect of intersects) {
-      intersect.object.material.color.set("#005500");
+      intersect.object.material.color.set("#550000");
     }
   }
   // Update controls
@@ -336,6 +359,7 @@ const tick = () => {
 
 tick();
 
+
 // button functionality
 
 $(".table").on("click", () => {
@@ -345,14 +369,59 @@ $(".table").on("click", () => {
   for (let i = 0; i < targets.helix.length; i++) {
     scene.remove(targets.helix[i]);
   }
+  raycasterTestObjects = targets.table;
 });
 
 $(".helix").on("click", () => {
   createHelix();
   $(".btn").removeClass("active");
   $(".helix").addClass("active");
-  scene.remove(targets.table);
   for (let i = 0; i < targets.table.length; i++) {
     scene.remove(targets.table[i]);
   }
+  raycasterTestObjects = targets.helix;
 });
+
+$(".mg1").on("change", () => {
+  let s = $('.mg1').val();
+  for (let i = 0; i < targets.table.length; i++) {
+    scene.remove(targets.table[i]);
+  }
+  $(".btn").removeClass("active");
+  $(".table").addClass("active");
+  for (let i = 0; i < targets.helix.length; i++) {
+    scene.remove(targets.helix[i]);
+  }
+  createTable(s);
+  raycasterTestObjects = targets.table;
+})
+
+$(".sts").on("change", () => {
+  let s = $('.sts').val();
+  for (let i = 0; i < targets.table.length; i++) {
+    scene.remove(targets.table[i]);
+  }
+  $(".btn").removeClass("active");
+  $(".table").addClass("active");
+  for (let i = 0; i < targets.helix.length; i++) {
+    scene.remove(targets.helix[i]);
+  }
+  createTable(s);
+  raycasterTestObjects = targets.table;
+})
+
+$(".bt").on("change", () => {
+  let s = $('.bt').val();
+  for (let i = 0; i < targets.table.length; i++) {
+    scene.remove(targets.table[i]);
+  }
+  $(".btn").removeClass("active");
+  $(".table").addClass("active");
+  for (let i = 0; i < targets.helix.length; i++) {
+    scene.remove(targets.helix[i]);
+  }
+  createTable(s);
+  raycasterTestObjects = targets.table;
+})
+// würfel langsam asblenden
+// filter - in der for schleife abkürzen
