@@ -1,8 +1,7 @@
 import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import galaxyVertexShader from "./shaders/galaxy/vertex.glsl";
-import galaxyFragmentShader from "./shaders/galaxy/fragment.glsl";
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { Scene } from "three";
 
 const $ = require("jquery");
@@ -10,132 +9,120 @@ const $ = require("jquery");
  * Base
  */
 
+/**
+ * Sizes
+ */
+ const sizes = {
+  width: window.innerWidth,
+  height: window.innerHeight,
+};
+
 // Canvas
 const canvas = document.querySelector("canvas.webgl");
 
 // Scene
 const scene = new THREE.Scene();
 
-// targets
-const targets = { table: [], sphere: [], helix: [], grid: [] };
 /**
- * Galaxy
+ * Startpage (Particle)
  */
-const parameters = {};
-parameters.count = 115000;
-parameters.size = 0.005;
-parameters.radius = 8.7;
-parameters.branches = 5;
-parameters.spin = 1;
-parameters.randomness = 0.2;
-parameters.randomnessPower = 7;
-parameters.insideColor = "#0000ff";
-parameters.outsideColor = "#1b3984";
+const vertices = []
+const materials = []
+let particles
+ 
+let parameters
+let mouseX = 0, mouseY = 0
 
-let geometry = null;
-let material = null;
-let points = null;
+// TEXTURE
+const textureloader = new THREE.TextureLoader()
+const particleTexture = textureloader.load('particle.png')
+
+
+// Create random "positions"
+for ( let i = 0; i < 1000; i ++ ) {
+
+  const x = Math.random() * 20 - 10;
+  const y = Math.random() * 20 - 10;
+  const z = Math.random() * 20 - 10;
+
+  vertices.push( x, y, z );
+}
+
+// GEOMETRY (Particles)
+const geometry = new THREE.BufferGeometry();
+geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+
+parameters = [
+    [[ 1.0, 0.2, 0.5 ], 0.02 ],
+    [[ 0.95, 0.1, 0.5 ], 0.11 ],
+    [[ 0.90, 0.05, 0.5 ], 0.17 ],
+    [[ 0.85, 0, 0.5 ], 0.1 ],
+    [[ 0.80, 0, 0.5 ], 0.06 ]
+];
+
+
+// MATERIAL/PARTICLES
+for ( let i = 0; i < parameters.length; i ++ ) {
+
+  // const color = parameters[ i ][ 0 ];
+  const size = parameters[ i ][ 1 ];
+
+  materials[ i ] = new THREE.PointsMaterial({
+      size: size,
+      color: 0xB461D1,
+      map: particleTexture,
+      blending: THREE.AdditiveBlending, 
+      depthTest: false, 
+      transparent: true 
+  });
+
+  // CREATE PARTICLES
+  particles = new THREE.Points( geometry, materials[ i ] );
+
+  particles.rotation.x = Math.random() * 3;
+  particles.rotation.y = Math.random() * 3;
+  particles.rotation.z = Math.random() * 3;
+
+}
+
+scene.add( particles );
+
+// PARTICLES REACT TO POINTER MOVE
+document.body.style.touchAction = 'none';
+document.body.addEventListener( 'pointermove', onPointerMove );
+
+function onPointerMove( event ) {
+
+  if ( event.isPrimary === false ) return;
+
+  mouseX = event.clientX - sizes.width/2;
+  mouseY = event.clientY - sizes.height/2;
+
+}
 
 let loadLandingPage = true;
 let loadTablePage = false;
 
-const generateGalaxy = () => {
-  if (points !== null) {
-    geometry.dispose();
-    material.dispose();
-    scene.remove(points);
-  }
+/**
+ * Ovverview Page
+ */
 
-  /**
-   * Geometry
-   */
-  geometry = new THREE.BufferGeometry();
+// targets
+const targets = { table: [], sphere: [], helix: [], grid: [] };
 
-  const positions = new Float32Array(parameters.count * 3);
-  const randomness = new Float32Array(parameters.count * 3);
-  const colors = new Float32Array(parameters.count * 3);
-  const scales = new Float32Array(parameters.count * 1);
+// TEXTURES
+const textures = []
 
-  const insideColor = new THREE.Color(parameters.insideColor);
-  const outsideColor = new THREE.Color(parameters.outsideColor);
+for(let i = 0; i < 118; i++) {
+    const elementstextureLoader = new THREE.TextureLoader()
+    textures[i] = elementstextureLoader.load('./textures/elements/textures_elements_'+ i + '.png')
+}
 
-  for (let i = 0; i < parameters.count; i++) {
-    const i3 = i * 3;
-
-    // Position
-    const radius = Math.random() * parameters.radius;
-
-    const branchAngle =
-      ((i % parameters.branches) / parameters.branches) * Math.PI * 2;
-
-    const randomX =
-      Math.pow(Math.random(), parameters.randomnessPower) *
-      (Math.random() < 0.5 ? 1 : -1) *
-      parameters.randomness *
-      radius;
-    const randomY =
-      Math.pow(Math.random(), parameters.randomnessPower) *
-      (Math.random() < 0.5 ? 1 : -1) *
-      parameters.randomness *
-      radius;
-    const randomZ =
-      Math.pow(Math.random(), parameters.randomnessPower) *
-      (Math.random() < 0.5 ? 1 : -1) *
-      parameters.randomness *
-      radius;
-
-    positions[i3] = Math.cos(branchAngle) * radius;
-    positions[i3 + 1] = 0;
-    positions[i3 + 2] = Math.sin(branchAngle) * radius;
-
-    randomness[i3] = randomX;
-    randomness[i3 + 1] = randomY;
-    randomness[i3 + 2] = randomZ;
-
-    // Color
-    const mixedColor = insideColor.clone();
-    mixedColor.lerp(outsideColor, radius / parameters.radius);
-
-    colors[i3] = mixedColor.r;
-    colors[i3 + 1] = mixedColor.g;
-    colors[i3 + 2] = mixedColor.b;
-
-    // Scale
-    scales[i] = Math.random();
-  }
-
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute(
-    "aRandomness",
-    new THREE.BufferAttribute(randomness, 3)
-  );
-  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  geometry.setAttribute("aScale", new THREE.BufferAttribute(scales, 1));
-
-  /**
-   * Material
-   */
-  material = new THREE.ShaderMaterial({
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    vertexColors: true,
-    uniforms: {
-      uTime: { value: 0 },
-      uSize: { value: 30 * renderer.getPixelRatio() },
-    },
-    vertexShader: galaxyVertexShader,
-    fragmentShader: galaxyFragmentShader,
-  });
-
-  /**
-   * Points
-   */
-  points = new THREE.Points(geometry, material);
-  scene.add(points);
-};
-
+// GEOMETRY
 const vector = new THREE.Vector3();
-const geometryBox = new THREE.BoxGeometry(1, 1, 1);
+const geometryBox = new RoundedBoxGeometry(1, 1, 1, 10, 0.1)
+
+
 
 function createTable(filterVar) {
   console.log(filterVar);
@@ -143,6 +130,7 @@ function createTable(filterVar) {
   let row = 0;
   let col = 0;
   let c = 0;
+
   $.getJSON("periodic-table.json", function (data) {
     if(filterVar){
       for(let i = 0; i < data.length; i++){
@@ -150,11 +138,17 @@ function createTable(filterVar) {
 
           console.log(data[i].name);
           console.log(c);
-          const edges = new THREE.EdgesGeometry(geometryBox);
-          const object = new THREE.LineSegments(
-            edges,
-            new THREE.LineBasicMaterial({ color: 0xff9900 })
-          );
+          console.log(textures[i])
+          const object = new THREE.Mesh(geometryBox, new THREE.MeshBasicMaterial({
+            // color: 0xFFFFFF,
+            map: textures[i],
+            // fog: true,
+            // map: goldTexture,
+            // transparent: true,
+            // opacity: 0.99,
+            // alpha: true,
+            // side: THREE.DoubleSide
+        }))
           object.lookAt(vector);
           targets.table.push(object);
           targets.table[c].position.x = c * 1.8;
@@ -170,15 +164,20 @@ function createTable(filterVar) {
     else{
       for(let i = 0; i < data.length; i++){
         // grid
-      if (col > 12) {
+      if (col > 11) {
         row--;
         col = 0;
       }
-      const edges = new THREE.EdgesGeometry(geometryBox);
-      const object = new THREE.LineSegments(
-        edges,
-        new THREE.LineBasicMaterial({ color: 0xff9900 })
-      );
+      const object = new THREE.Mesh(geometryBox, new THREE.MeshBasicMaterial({
+        // color: 0xFFFFFF,
+        map: textures[i],
+        // fog: true,
+        // map: goldTexture,
+        // transparent: true,
+        // opacity: 0.99,
+        // alpha: true,
+        // side: THREE.DoubleSide
+    }))
       object.lookAt(vector);
       targets.table.push(object);
       targets.table[i].position.x = 6 - col * 1.8;
@@ -201,11 +200,21 @@ function createHelix() {
       const theta = i * 0.175 + Math.PI; //default  0.175
       const y = -(i * 0.05) + 2;
 
-      const edges = new THREE.EdgesGeometry(geometryBox);
-      const object = new THREE.LineSegments(
-        edges,
-        new THREE.LineBasicMaterial({ color: 0xff9900 })
-      );
+      // const edges = new THREE.EdgesGeometry(geometryBox);
+      // const object = new THREE.LineSegments(
+      //   edges,
+      //   new THREE.LineBasicMaterial({ color: 0xff9900 })
+      // );
+      const object = new THREE.Mesh(geometryBox, new THREE.MeshBasicMaterial({
+        // color: 0xFFFFFF,
+        map: textures[i],
+        // fog: true,
+        // map: goldTexture,
+        // transparent: true,
+        // opacity: 0.99,
+        // alpha: true,
+        // side: THREE.DoubleSide
+    }))
       object.position.setFromCylindricalCoords(8, theta, y);
 
       vector.x = object.position.x * 2;
@@ -236,14 +245,6 @@ window.addEventListener("mousemove", (event) => {
   mouse.y = -(event.clientY / sizes.height) * 2 + 1; // Values from -1 to 1 -> normalized
 });
 
-/**
- * Sizes
- */
-const sizes = {
-  width: window.innerWidth,
-  height: window.innerHeight,
-};
-
 window.addEventListener("resize", () => {
   // Update sizes
   sizes.width = window.innerWidth;
@@ -261,7 +262,7 @@ window.addEventListener("resize", () => {
 document.getElementById("starter").addEventListener("click", () => {
   loadLandingPage = false;
   loadTablePage = true;
-  scene.remove(points);
+  scene.remove(particles);
   $(".section").fadeOut();
   $(".switcher").fadeIn();
   $(".filter").fadeIn();
@@ -270,18 +271,13 @@ document.getElementById("starter").addEventListener("click", () => {
   camera.position.z = -15;
   camera.position.z = 15;
 });
+
+
 /**
  * Camera
  */
 // Base camera
-const camera = new THREE.PerspectiveCamera(
-  75,
-  sizes.width / sizes.height,
-  0.1,
-  100
-);
-camera.position.x = 3;
-camera.position.y = 3;
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 1, 1000);
 camera.position.z = 3;
 scene.add(camera);
 
@@ -299,28 +295,13 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
+
+
 /**
- * Generate the first galaxy
+ * Lights
  */
-generateGalaxy();
-
-const directionalLight1 = new THREE.DirectionalLight({
-  color: "white",
-  intensity: 1,
-});
-directionalLight1.position.y = 5;
-directionalLight1.position.x = 2;
-directionalLight1.position.z = -3;
-scene.add(directionalLight1);
-
-const directionalLight2 = new THREE.DirectionalLight({
-  color: "white",
-  intensity: 2,
-});
-directionalLight2.position.y = 3;
-directionalLight2.position.x = -3;
-directionalLight2.position.z = 3;
-scene.add(directionalLight2);
+ const ambientLight = new THREE.AmbientLight(0xcc9ff4, 1);
+ scene.add(ambientLight)
 
 /**
  * Animate
@@ -330,11 +311,28 @@ let raycasterTestObjects = targets.table;
 
 const tick = () => {
   if (loadLandingPage) {
+
     const elapsedTime = clock.getElapsedTime();
 
-    // Update material
-    material.uniforms.uTime.value = elapsedTime;
+      //UPDATE STARTPAGE (PARTICLES)
+    camera.position.x += ( mouseX - camera.position.x ) * 0.000008;
+    camera.position.y += ( - mouseY - camera.position.y ) * 0.000008;
+
+    // camera.lookAt( scene.position );
+
+    for ( let i = 0; i < scene.children.length; i ++ ) {
+
+      const object = scene.children[ i ];
+
+      if ( object instanceof THREE.Points ) {
+
+        object.rotation.y = elapsedTime * ( i < 4 ? i + 1 : - ( i + 1 ) ) * 0.003;
+
+      }
+    }
+
   }
+
   if (loadTablePage) {
     // Cast a Ray
     raycaster.setFromCamera(mouse, camera);
@@ -342,14 +340,16 @@ const tick = () => {
     const objectsToTest = raycasterTestObjects;
     const intersects = raycaster.intersectObjects(objectsToTest);
 
+
     for (const object of objectsToTest) {
-      object.material.color.set("#ff0000");
+      object.material.color.set("#FFF");
     }
 
     for (const intersect of intersects) {
-      intersect.object.material.color.set("#550000");
+      intersect.object.material.color.set("#AAA");
     }
   }
+
   // Update controls
   controls.update();
   // renderer
@@ -380,6 +380,9 @@ $(".helix").on("click", () => {
     scene.remove(targets.table[i]);
   }
   raycasterTestObjects = targets.helix;
+
+  //Camera neu positionieren
+  camera.position.set(0,0,15)
 });
 
 $(".mg1").on("change", () => {
@@ -425,3 +428,6 @@ $(".bt").on("change", () => {
 })
 // würfel langsam asblenden
 // filter - in der for schleife abkürzen
+
+const gridHelper = new THREE.GridHelper(100,100)
+scene.add(gridHelper)

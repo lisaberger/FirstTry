@@ -42,9 +42,10 @@ section:nth-child(odd)
 
 img {
     margin: 2%;
-    width: 5%;
+    width: 4%;
     height: auto;
 }
+
 .section h1 {
     margin: 1%;
 }
@@ -54,7 +55,7 @@ img {
     width: 30%;
 }
 
-.title {
+.logo {
     width: 10%;
 }
 
@@ -123,5 +124,23 @@ img {
 .switcher button:hover{
     color: gold;
     background: rgb(24,24, 24);
+}
+
+#starter {
+    width: 10rem;
+    padding: 1rem;
+    border: white solid 0.1rem;
+    /* border: none; */
+    border-radius: 3rem;
+    background: none;
+    color: white;
+    font-size: 1.0rem;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    /* background-color: rgb(75, 0, 71); */
+}
+
+#starter:hover {
+    border-width: 0.15rem;
+    cursor:pointer;
 }
 
